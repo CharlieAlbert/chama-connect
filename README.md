@@ -1,4 +1,4 @@
-# 🧾 Chama Connect
+# 🧾 Chama Connect: Chama Group Management System
 
 ## 🚀 Overview
 
