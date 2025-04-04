@@ -11,14 +11,6 @@ type SignUp = {
   avatar_url: string;
 };
 
-type UserData = Database["public"]["Tables"]["users"]["Row"];
-
-/**
- * Handles user signup with OTP verification.
- *
- * @param {SignUp} data - User data containing email, password, name, phone, and avatar_url.
- * @returns {Promise<{ success: boolean, message: string, data: any }>} - Success message and user data.
- */
 export const SignUpRequest = async ({
   email,
   password,
@@ -28,12 +20,22 @@ export const SignUpRequest = async ({
 }: SignUp) => {
   const supabase = await createClient();
 
-  if (!email || !password || name || phone) {
-    throw new Error("Required fields are missing");
+  if (!email || !password || !name || !phone) {
+    return { error: "Required fields are missing" };
   }
 
-  // Using OTP-based signup flow instead of direct password signup
-  // This allows for email verification before account creation
+  // Check if user already exists
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("email")
+    .eq("email", email)
+    .single();
+
+  if (existingUser) {
+    return { error: "User with this email already exists" };
+  }
+
+  // Send OTP
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
     options: {
@@ -47,15 +49,12 @@ export const SignUpRequest = async ({
 
   if (error) {
     console.error("OTP error:", error.message);
-
-    // Special handling for SMTP/email delivery issues
-    // Provides a more user-friendly error message
     if (error.message.includes("email") || error.message.includes("smtp")) {
-      console.error("Email delivery issue. Please try again later");
       return { error: "Email delivery issue. Please try again later" };
     }
-
-    throw new Error("Unable to send verification code. Please try again later");
+    return {
+      error: "Unable to send verification code. Please try again later",
+    };
   }
 
   return { success: true, message: "Verification code sent to your email" };
@@ -67,20 +66,14 @@ type validateOTP = {
   password: string;
 };
 
-/**
- * Validates the OTP sent during signup and creates a permanent account.
- *
- * @param {validateOTP} data - User data containing email, otp, and password.
- * @returns {Promise<{ success: boolean, message: string, data: any }>} - Success message and user data.
- */
 export const ValidateOTP = async ({ email, otp, password }: validateOTP) => {
   const supabase = await createClient();
 
   if (!email || !otp || !password) {
-    throw new Error("Required fields are missing");
+    return { error: "Required fields are missing" };
   }
 
-  // Verify the OTP sent during signup
+  // Verify OTP
   const { data, error } = await supabase.auth.verifyOtp({
     email,
     token: otp,
@@ -92,77 +85,74 @@ export const ValidateOTP = async ({ email, otp, password }: validateOTP) => {
     return { error: "Invalid verification code" };
   }
 
-  if (data.user && data.user.identities?.length) {
-    const userData = data.user.user_metadata;
-    const userPassword = userData.password;
-
-    console.log("Creating password-based account");
-
-    await supabase.auth.signOut();
-
-    const { error: updatedError } = await supabase.auth.signUp({
-      email,
-      password: userPassword,
-      options: {
-        data: {
-          name: userData.name,
-          phone: userData.phone,
-          avatar_url: userData.avatar_url,
+  try {
+    // Create permanent account
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
+      {
+        email,
+        password,
+        options: {
+          data: {
+            name: data.user.user_metadata?.name,
+            phone: data.user.user_metadata?.phone,
+            avatar_url: data.user.user_metadata?.avatar_url,
+          },
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
         },
-      },
-    });
+      }
+    );
 
-    if (updatedError) {
-      console.error("Failed to create account:", updatedError);
-      return { error: "Account creation error" };
+    if (signUpError) {
+      console.error("Failed to create account:", signUpError);
+      return { error: signUpError.message };
     }
 
-    // Auto sign-in after account creation for better UX
-    const { data: SignInData, error: SignInError } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password: userPassword,
+    // Create user profile
+    const { error: profileError } = await supabase.from("users").insert({
+      email,
+      name: data.user.user_metadata?.name,
+      phone: data.user.user_metadata?.phone,
+      avatar_url: data.user.user_metadata?.avatar_url,
+      role: "member",
+    });
+
+    if (profileError) {
+      console.error("Failed to create user profile:", profileError);
+      return { error: "Failed to create user profile" };
+    }
+
+    // IMPORTANT: Add a small delay to ensure user is fully created
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Attempt sign-in with the same credentials
+    const { data: sessionData, error: signInError } =
+      await supabase.auth.signInWithPassword({ email, password });
+
+    if (signInError) {
+      console.error("Sign-in error details:", {
+        emailUsed: email,
+        passwordLength: password.length,
+        passwordHash: btoa(password),
+        error: signInError,
       });
 
-    if (SignInError) {
-      console.error("Failed to sign in:", SignInError);
+      // Return success but indicate manual sign-in is needed
       return {
-        error: "Unable to sign you in automatically. Please log in manually",
+        success: true,
+        message: "Account created successfully. Please sign in.",
+        data: signUpData,
       };
     }
 
-    const sessionData = SignInData;
-
-    const { data: existingAccount } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", email)
-      .single();
-
-    if (existingAccount) {
-      console.error("User account already exists");
-      return { data: sessionData };
-    }
-
-    const { data: userAccount, error: userAccountError } = await supabase
-      .from("users")
-      .insert({
-        email,
-        name: userData.name,
-        phone: userData.phone,
-        role: "member", // Default role assignment
-        avatar_url: userData.avatar_url,
-      });
-
-    if (userAccountError) {
-      console.error("Failed to create user:", userAccountError);
-      return { error: "User creation error" };
-    }
-
-    return { data: sessionData };
+    return {
+      success: true,
+      message: "Account created and signed in successfully",
+      data: sessionData,
+    };
+  } catch (err) {
+    console.error("Unexpected error during account creation:", err);
+    return { error: "An unexpected error occurred during account creation" };
   }
-
-  return { success: true, message: "Account created successfully", data };
 };
 
 /**

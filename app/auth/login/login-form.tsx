@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { SignInRequest } from "@/lib/supabase/server-extended/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,7 +70,7 @@ function SubmitButton() {
 
 export function LoginForm() {
   // Initialize with a type that matches what SignInRequest can return
-  const [state, formAction] = useFormState<SignInResult, FormData>(
+  const [state, formAction] = useActionState<SignInResult, FormData>(
     loginAction,
     { error: "" } // Initial state as an error object with empty message
   );
