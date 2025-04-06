@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SignInRequest } from "@/lib/supabase/server-extended/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
-// Define return types from SignInRequest to match exactly what the function returns
 type SignInSuccess = {
   success: boolean;
   message: string;
@@ -23,13 +23,11 @@ type SignInError = {
 
 type SignInResult = SignInSuccess | SignInError;
 
-// Create a server action wrapper for SignInRequest
 const loginAction = async (
-  _prevState: SignInResult,
+  _prevState: SignInResult | null,
   formData: FormData
 ): Promise<SignInResult> => {
   try {
-    // Extract form data
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
@@ -37,11 +35,8 @@ const loginAction = async (
       return { error: "Email and password are required" };
     }
 
-    // Call the actual SignInRequest function
-    return await SignInRequest({
-      email,
-      password,
-    });
+    const result = await SignInRequest({ email, password });
+    return result;
   } catch (error) {
     return {
       error:
@@ -50,7 +45,6 @@ const loginAction = async (
   }
 };
 
-// Submit button component with loading state
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -69,69 +63,104 @@ function SubmitButton() {
 }
 
 export function LoginForm() {
-  // Initialize with a type that matches what SignInRequest can return
-  const [state, formAction] = useActionState<SignInResult, FormData>(
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [formValues, setFormValues] = useState({
+    email: "",
+    password: "",
+  });
+
+  // Get redirect URL from query params
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
+
+  // Setup form state with useActionState
+  const [loginState, loginFormAction] = useActionState<SignInResult, FormData>(
     loginAction,
-    { error: "" } // Initial state as an error object with empty message
+    { error: "" }
   );
 
+  // Effect to handle successful login
+  useEffect(() => {
+    if (loginState && "success" in loginState && loginState.success) {
+      // Set timeout to give user time to see success message
+      const timer = setTimeout(() => {
+        router.push(redirectTo);
+        // Force a refresh to ensure middleware picks up the new session
+        router.refresh();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [loginState, router, redirectTo]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
   return (
-    <form action={formAction} className="space-y-6">
-      {/* Display error message if present */}
-      {"error" in state && state.error && (
-        <Alert variant="destructive">
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
-      )}
+    <div className="w-full">
+      <form action={loginFormAction} className="space-y-6">
+        {loginState && "error" in loginState && loginState.error && (
+          <Alert variant="destructive">
+            <AlertDescription>{loginState.error}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* Display success message if present */}
-      {"success" in state && state.success && (
-        <Alert>
-          <AlertDescription>{state.message}</AlertDescription>
-        </Alert>
-      )}
+        {loginState && "success" in loginState && loginState.success && (
+          <Alert>
+            <AlertDescription>
+              {loginState.message} Redirecting...
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <div>
-        <Label
-          htmlFor="email"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Email address
-        </Label>
-        <div className="mt-1">
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="block w-full"
-          />
+        <div>
+          <Label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Email address
+          </Label>
+          <div className="mt-1">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="block w-full"
+              value={formValues.email}
+              onChange={handleInputChange}
+            />
+          </div>
         </div>
-      </div>
 
-      <div>
-        <Label
-          htmlFor="password"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Password
-        </Label>
-        <div className="mt-1">
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="block w-full"
-          />
+        <div>
+          <Label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Password
+          </Label>
+          <div className="mt-1">
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="block w-full"
+              value={formValues.password}
+              onChange={handleInputChange}
+            />
+          </div>
         </div>
-      </div>
 
-      <div>
-        <SubmitButton />
-      </div>
-    </form>
+        <div>
+          <SubmitButton />
+        </div>
+      </form>
+    </div>
   );
 }

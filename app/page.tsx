@@ -73,7 +73,7 @@ export default function HomePage() {
             <div className="flex justify-center">
               <div className="relative w-full max-w-md h-[400px]">
                 <Image
-                  src="/placeholder.svg?height=400&width=400"
+                  src="/chama-landing.jpg?height=400&width=400"
                   alt="Chama Connect group members"
                   fill
                   className="object-contain"
