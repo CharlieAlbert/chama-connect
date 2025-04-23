@@ -16,6 +16,7 @@ import Image from "next/image";
 type SignUpSuccess = {
   success: boolean;
   message: string;
+  requireManualSignin?: boolean;
 };
 
 type SignUpError = {
@@ -49,8 +50,6 @@ const signupAction = async (
       avatar_url = url || "";
     }
 
-    // The password will be stored in user_metadata on the server now
-    // We no longer need to store it in sessionStorage after the signup request
     const result = await SignUpRequest({
       email,
       password,
@@ -58,14 +57,6 @@ const signupAction = async (
       phone,
       avatar_url,
     });
-
-    // Still store in sessionStorage as fallback for the OTP page
-    if (result.success) {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("signup_email", email);
-        sessionStorage.setItem("signup_password", password);
-      }
-    }
 
     return result;
   } catch (error) {
@@ -84,10 +75,10 @@ function SubmitButton() {
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Sending verification code...
+          Creating account...
         </>
       ) : (
-        "Continue"
+        "Sign Up"
       )}
     </Button>
   );
@@ -111,18 +102,25 @@ export function SignupForm() {
     FormData
   >(signupAction, { error: "" });
 
-  // Effect to handle successful OTP request
+  // Effect to handle successful signup
   useEffect(() => {
     if (signupState && "success" in signupState && signupState.success) {
-      // Password is now stored in user_metadata on the server
-      // But we've already stored credentials in sessionStorage as a fallback
-      
-      // Set timeout to give user time to see success message
-      const timer = setTimeout(() => {
-        router.push("/auth/verify-otp");
-      }, 1500);
-      
-      return () => clearTimeout(timer);
+      // Check if manual signin is required
+      if (signupState.requireManualSignin) {
+        // Redirect to login page if manual signin is required
+        const timer = setTimeout(() => {
+          router.push("/auth/login");
+        }, 1000);
+        
+        return () => clearTimeout(timer);
+      } else {
+        // User is already signed in, redirect to dashboard or home
+        const timer = setTimeout(() => {
+          router.push("/dashboard");
+        }, 1000);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [signupState, router]);
 
@@ -161,7 +159,7 @@ export function SignupForm() {
         {signupState && "success" in signupState && signupState.success && (
           <Alert>
             <AlertDescription>
-              {signupState.message} Redirecting to verification page...
+              {signupState.message} Redirecting to next page...
             </AlertDescription>
           </Alert>
         )}

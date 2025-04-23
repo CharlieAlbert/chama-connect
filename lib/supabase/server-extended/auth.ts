@@ -24,118 +24,97 @@ export const SignUpRequest = async ({
     return { error: "Required fields are missing" };
   }
 
-  // Start with OTP flow only - don't create password account yet
-  const { error: otpError } = await supabase.auth.signInWithOtp({
+  // Sign up with auto-confirm enabled
+  const { data: SignupData, error: SignupError } = await supabase.auth.signUp({
     email,
+    password,
     options: {
       data: {
-        password, // Store password to use after verification
         name,
         phone,
         avatar_url,
       },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
     },
   });
 
-  if (otpError) {
-    console.error("OTP error:", otpError.message);
-    if (otpError.message.includes("email") || otpError.message.includes("smtp")) {
-      return { error: "Email delivery issue. Please try again later" };
-    }
-    return {
-      error: "Unable to send verification code. Please try again later",
-    };
+  if (SignupError) {
+    console.error("Sign up error:", SignupError.message);
+    return { error: "An error occurred. Please try again later." };
   }
 
-  // Store credentials in session storage for the verification step
-  if (typeof window !== "undefined") {
-    sessionStorage.setItem("signup_email", email);
-    sessionStorage.setItem("signup_password", password);
+  const userId = SignupData?.user?.id;
+
+  if (!userId) {
+    console.error("User ID not found in signup response");
+    return { error: "An error occurred. Please try again later." };
   }
 
-  return { success: true, message: "Verification code sent to your email" };
-};
+  // Check if email confirmation is required
+  const emailConfirmationRequired = !SignupData.session;
 
-type validateOTP = {
-  email: string;
-  otp: string;
-  password?: string;
-};
-
-export const ValidateOTP = async ({ email, otp, password }: validateOTP) => {
-  const supabase = await createClient();
-  try {
-    // First verify the OTP
-    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+  // Insert user data into users table
+  const { data: AccountData, error: AccountError } = await supabase
+    .from("users")
+    .insert({
+      id: userId,
       email,
-      token: otp,
-      type: "email",
-    });
+      name,
+      phone,
+      avatar_url,
+      role: "member",
+    })
+    .single();
 
-    if (verifyError) {
-      return { error: verifyError.message };
-    }
+  if (AccountError) {
+    console.error("Account creation error:", AccountError.message);
+    return { error: "An error occurred. Please try again later." };
+  }
 
-    // Get user metadata from the OTP session
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: "User session not found" };
-    }
-
-    const userPassword = password || user.user_metadata?.password;
-    const userData = user.user_metadata || {};
-
-    if (!userPassword) {
-      return { error: "Password not found. Please try signing up again." };
-    }
-
-    // Sign out of the OTP session
-    await supabase.auth.signOut();
-
-    // Now create the permanent password-based account
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password: userPassword,
-      options: {
-        data: {
-          name: userData.name,
-          phone: userData.phone,
-          avatar_url: userData.avatar_url,
-        },
-      },
-    });
-
-    if (signUpError) {
-      return { error: signUpError.message };
-    }
-
-    // Attempt to sign in with the new account
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password: userPassword,
-    });
-
-    if (signInError) {
-      return {
-        success: true,
-        message: "Account created. Please sign in with your password.",
-        requireManualSignin: true,
-      };
-    }
-
+  // If we already have a session from signup, use it instead of trying to sign in again
+  if (SignupData.session) {
     return {
       success: true,
-      message: "Account created and signed in successfully",
-      data: signInData,
+      message: "Your account is created successfully and you're now signed in",
+      data: { session: SignupData.session, user: SignupData.user },
       requireManualSignin: false,
     };
+  }
 
-  } catch (error) {
-    console.error("Validation error:", error);
+  // If email confirmation is required, don't attempt auto sign-in
+  if (emailConfirmationRequired) {
     return {
-      error: error instanceof Error ? error.message : "An unexpected error occurred",
+      success: true,
+      message: "Please check your email to confirm your account before signing in.",
+      requireManualSignin: true,
     };
   }
+
+  // Only try auto sign-in if email confirmation is not required
+  const { data: signInData, error: signInError } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+  if (signInError) {
+    console.error("Auto sign-in error:", signInError.message);
+    // Return success but indicate manual sign-in is required
+    return {
+      success: true,
+      message:
+        "Your account is created successfully. Please sign in with your password.",
+      requireManualSignin: true,
+    };
+  }
+
+  // Return success with session data
+  return {
+    success: true,
+    message: "Your account is created successfully and you're now signed in",
+    data: signInData,
+    requireManualSignin: false,
+  };
 };
 
 /**
