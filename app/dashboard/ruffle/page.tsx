@@ -1,12 +1,31 @@
-export default function RufflePage() {
+import { Suspense } from "react";
+import { RaffleSettings } from "./components/ruffle-settings";
+import { CurrentCycle } from "./components/current-cycle";
+import { RaffleTabs } from "./components/ruffle-tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export default function RafflePage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Monthly Ruffle</h1>
-      <div className="bg-card border border-border rounded-lg p-6">
+    <div className="container py-6 space-y-8">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Raffle Management</h1>
         <p className="text-muted-foreground">
-          Monthly ruffle content will appear here.
+          Manage raffle cycles, draw winners, and track payments
         </p>
       </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>
+          <RaffleSettings />
+        </Suspense>
+        <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>
+          <CurrentCycle />
+        </Suspense>
+      </div>
+
+      <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+        <RaffleTabs />
+      </Suspense>
     </div>
   );
 }
