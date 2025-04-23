@@ -34,7 +34,9 @@ export const SignUpRequest = async ({
         phone,
         avatar_url,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      emailRedirectTo: `${
+        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+      }/auth/callback`,
     },
   });
 
@@ -56,15 +58,16 @@ export const SignUpRequest = async ({
   // Insert user data into users table
   const { data: AccountData, error: AccountError } = await supabase
     .from("users")
-    .insert({
-      id: userId,
-      email,
-      name,
-      phone,
-      avatar_url,
-      role: "member",
-    })
-    .single();
+    .insert([
+      {
+        email,
+        name,
+        phone,
+        role: "member",
+        avatar_url,
+        auth_id: userId,
+      },
+    ]);
 
   if (AccountError) {
     console.error("Account creation error:", AccountError.message);
@@ -85,7 +88,8 @@ export const SignUpRequest = async ({
   if (emailConfirmationRequired) {
     return {
       success: true,
-      message: "Please check your email to confirm your account before signing in.",
+      message:
+        "Please check your email to confirm your account before signing in.",
       requireManualSignin: true,
     };
   }

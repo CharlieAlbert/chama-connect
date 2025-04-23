@@ -55,3 +55,74 @@ export async function uploadProfileImage(
     return { error: "An unexpected error occurred" };
   }
 }
+
+export async function getSelfProfile() {
+  const supabase = await createClient();
+  
+  // First get the current user's ID
+  const {data: {user}, error: AuthError} = await supabase.auth.getUser()
+  if (!user) return {error: "User not found"}
+
+  if (AuthError) {
+    console.error("Error fetching user")
+    throw new Error("Error fetching user")
+  }
+  
+  
+  // Query the users table with the user's ID
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("auth_id", user.id)
+    .single();
+
+  console.log("getSelfProfile - Query result:", { data, error });
+  
+  if (error) {
+    console.error("Error fetching user profile:", error.message);
+    return { error: "Failed to fetch user profile" };
+  }
+  
+  return { data, error: null };
+}
+
+export async function updateUserProfile(profileData: {
+  name?: string;
+  phone?: string;
+  avatar_url?: string;
+  role?: string;
+}) {
+  const supabase = await createClient();
+  
+  // Get the current user's ID
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  
+  if (!userId) {
+    return { error: "User not authenticated" };
+  }
+  
+  // Update the user's profile in the users table
+  const { data, error } = await supabase
+    .from("users")
+    .update(profileData)
+    .eq("auth_id", userId)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating user profile:", error.message);
+    return { error: "Failed to update user profile" };
+  }
+  
+  // Also update the user's metadata in Auth
+  const { error: metadataError } = await supabase.auth.updateUser({
+    data: profileData
+  });
+  
+  if (metadataError) {
+    console.error("Error updating user metadata:", metadataError.message);
+  }
+  
+  return { data, error: null };
+}

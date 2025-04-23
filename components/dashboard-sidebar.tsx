@@ -14,16 +14,20 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getInitials } from "@/utils/initials";
+import Image from "next/image";
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   const isActive = (path: string) => {
     return pathname === path;
   };
 
   return (
-    <aside className="w-64 border-r border-border hidden md:block">
+    <aside className="w-64 border-r border-border hidden md:block h-screen sticky top-0 overflow-auto">
       <div className="h-full flex flex-col">
         <div className="p-4 border-b border-border">
           <Link href="/dashboard" className="flex items-center">
@@ -106,11 +110,29 @@ export function DashboardSidebar() {
         <div className="p-4 border-t border-border">
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-xs font-medium">JD</span>
+              <span className="text-xs font-medium">
+                {user?.avatar_url ? (
+                  <div className="w-8 h-8 rounded-full overflow-hidden">
+                    <Image
+                      src={user?.avatar_url}
+                      alt={user?.name || ""}
+                      width={32}
+                      height={32}
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-xs font-medium">
+                      {getInitials(user?.name || "")}
+                    </span>
+                  </div>
+                )}
+              </span>
             </div>
             <div className="ml-2">
-              <p className="text-sm font-medium">John Doe</p>
-              <p className="text-xs text-muted-foreground">Member</p>
+              <p className="text-sm font-medium">{user?.name}</p>
+              <p className="text-xs text-muted-foreground">{user?.role}</p>
             </div>
           </div>
         </div>

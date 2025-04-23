@@ -4,9 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
 import { DashboardSidebarMobile } from "./dashboard-sidebar-mobile";
+import { useAuth } from "@/contexts/AuthContext";
+import { getInitials } from "@/utils/initials";
+import Image from "next/image";
 
 export function DashboardHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Use user data from auth context and profile
+  const displayName = user?.name || "User";
+  const initials = getInitials(displayName);
+  const avatarUrl = user?.avatar_url;
 
   return (
     <>
@@ -39,11 +48,25 @@ export function DashboardHeader() {
             </div>
 
             <div className="hidden md:flex items-center">
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-xs font-medium">JD</span>
-              </div>
+              {user?.avatar_url ? (
+                <div className="w-8 h-8 rounded-full overflow-hidden">
+                  <Image
+                    src={user?.avatar_url}
+                    alt={user?.name || ""}
+                    width={32}
+                    height={32}
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-xs font-medium">
+                    {getInitials(user?.name || "")}
+                  </span>
+                </div>
+              )}
               <div className="ml-2">
-                <p className="text-sm font-medium">John Doe</p>
+                <p className="text-sm font-medium">{displayName}</p>
               </div>
             </div>
           </div>
