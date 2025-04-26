@@ -21,12 +21,33 @@ export async function getRaffleSettings() {
     .from("raffle_settings")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
 
-  if (error)
-    throw new Error(`Failed to fetch raffle settings: ${error.message}`);
-  return data;
+  // If no settings exist, create default ones
+  if (error?.code === "PGRST116" || !data || data.length === 0) {
+    const { data: newSettings, error: createError } = await supabase
+      .from("raffle_settings")
+      .insert({
+        winners_per_period: 2, // Default number of winners
+        active: true, // System is active by default
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      throw new Error(
+        `Failed to create default raffle settings: ${createError.message}`
+      );
+    }
+
+    return newSettings;
+  }
+
+  if (error) {
+    throw new Error(`Failed to fetch raffle settings: ${error}`);
+  }
+
+  return data[0];
 }
 
 /**
@@ -60,32 +81,14 @@ export async function getCurrentRaffleCycle() {
   // If no active cycle exists for the current month, create one
   const currentMonth = currentDate.getMonth();
 
-  const { data: eligibleUsers, error: usersError } = await supabase
-    .from("users")
-    .select("id, name, phone, email, role, avatar_url")
-    .eq("active", true);
-
-  if (usersError)
-    throw new Error(`Failed to fetch eligible users: ${usersError.message}`);
-
-  // Create users JSON for the cycle
-  const eligibleUsersJson =
-    eligibleUsers?.map((user) => ({
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      email: user.email,
-      role: user.role,
-      avatar_url: user.avatar_url,
-    })) || [];
-
-  // Create a new cycle
+  // Since we're not fetching users, we'll create a new cycle with empty arrays
+  // The eligible_users should be populated separately or already exist
   const { data: newCycle, error: createError } = await supabase
     .from("raffle_cycles")
     .insert({
       year: currentYear,
       month: currentMonth,
-      eligible_users: eligibleUsersJson,
+      eligible_users: [], // Empty array, to be populated separately
       drawn_users: [],
       winners_count: 0,
       is_completed: false,
@@ -96,6 +99,48 @@ export async function getCurrentRaffleCycle() {
   if (createError)
     throw new Error(`Failed to create raffle cycle: ${createError.message}`);
   return newCycle;
+}
+
+// Helper function to add eligible users to a cycle with deduplication
+export async function addEligibleUsersToCycle(
+  cycleId: string,
+  users: UserProfile[]
+) {
+  const supabase = await createClient();
+
+  // First get the current cycle
+  const { data: cycle, error: fetchError } = await supabase
+    .from("raffle_cycles")
+    .select("eligible_users")
+    .eq("id", cycleId)
+    .single();
+
+  if (fetchError)
+    throw new Error(`Failed to fetch cycle: ${fetchError.message}`);
+
+  // Create a set of user IDs for deduplication
+  const existingUserIds = new Set(
+    (cycle.eligible_users || []).map((user: UserProfile) => user.id)
+  );
+
+  // Filter out duplicate users
+  const newUsers = users.filter((user) => !existingUserIds.has(user.id));
+
+  // Combine existing and new users
+  const updatedEligibleUsers = [...(cycle.eligible_users || []), ...newUsers];
+
+  // Update the cycle
+  const { error: updateError } = await supabase
+    .from("raffle_cycles")
+    .update({
+      eligible_users: updatedEligibleUsers,
+    })
+    .eq("id", cycleId);
+
+  if (updateError)
+    throw new Error(`Failed to update eligible users: ${updateError.message}`);
+
+  return { success: true, addedUsers: newUsers.length };
 }
 
 /**
@@ -204,13 +249,13 @@ export async function getRaffleWinners(year: number, month: number) {
     .from("raffle_cycles")
     .select("*")
     .eq("year", year)
-    .eq("month", month)
+    .eq("month", month);
 
   // Handle the case where no cycle exists
   if (!cycle) {
-    return { 
-      winners: [], 
-      message: "No raffle cycle found for the selected period." 
+    return {
+      winners: [],
+      message: "No raffle cycle found for the selected period.",
     };
   }
 

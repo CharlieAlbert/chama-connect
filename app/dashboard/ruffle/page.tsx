@@ -3,10 +3,12 @@ import { RaffleSettings } from "./components/ruffle-settings";
 import { CurrentCycle } from "./components/current-cycle";
 import { RaffleTabs } from "./components/ruffle-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCurrentRaffleCycle } from "@/lib/supabase/server-extended/ruffle";
 
-export default function RafflePage() {
+export default async function RafflePage() {
+  const initialCycle = await getCurrentRaffleCycle();
   return (
-    <div className="container py-6 space-y-8">
+    <div className="container p-6 space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Raffle Management</h1>
         <p className="text-muted-foreground">
@@ -19,7 +21,7 @@ export default function RafflePage() {
           <RaffleSettings />
         </Suspense>
         <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>
-          <CurrentCycle />
+          <CurrentCycle initialCycle={initialCycle} />
         </Suspense>
       </div>
 

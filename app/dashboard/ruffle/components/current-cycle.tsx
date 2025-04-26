@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -37,7 +37,28 @@ interface CurrentCycleProps {
 export function CurrentCycle({ initialCycle }: CurrentCycleProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(!initialCycle);
   const [cycle, setCycle] = useState(initialCycle);
+
+  // Add this effect to fetch data if initialCycle is not provided
+  useEffect(() => {
+    async function fetchCycle() {
+      if (!initialCycle) {
+        try {
+          setIsFetching(true);
+          const data = await getCurrentRaffleCycle();
+          setCycle(data);
+        } catch (error) {
+          toast("Failed to load raffle cycle");
+          console.error("Error fetching cycle:", error);
+        } finally {
+          setIsFetching(false);
+        }
+      }
+    }
+
+    fetchCycle();
+  }, [initialCycle]);
 
   const monthNames = [
     "January",
@@ -68,7 +89,7 @@ export function CurrentCycle({ initialCycle }: CurrentCycleProps) {
     }
   };
 
-  if (!cycle) {
+  if (!cycle || isFetching) {
     return (
       <Card>
         <CardHeader>
@@ -142,9 +163,4 @@ export function CurrentCycle({ initialCycle }: CurrentCycleProps) {
       </CardFooter>
     </Card>
   );
-}
-
-export async function CurrentCycleServer() {
-  const cycle = await getCurrentRaffleCycle();
-  return <CurrentCycle initialCycle={cycle} />;
 }

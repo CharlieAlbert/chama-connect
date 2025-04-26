@@ -29,7 +29,7 @@ export function DashboardSidebar() {
   return (
     <aside className="w-64 border-r border-border hidden md:block h-screen sticky top-0 overflow-auto">
       <div className="h-full flex flex-col">
-        <div className="p-4 border-b border-border">
+        <div className="p-4 h-16 border-b border-border flex items-center">
           <Link href="/dashboard" className="flex items-center">
             <span className="text-xl font-bold text-emerald">
               Chama Connect

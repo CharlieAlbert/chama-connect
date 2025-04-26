@@ -34,7 +34,7 @@ export function RaffleSettings({ initialSettings }: RaffleSettingsProps) {
   const [settings, setSettings] = useState(
     initialSettings || {
       id: "",
-      winners_per_period: 3,
+      winners_per_period: 2,
       active: true,
     }
   );
