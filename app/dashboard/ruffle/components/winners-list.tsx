@@ -32,8 +32,7 @@ interface Winner {
   payment_date: string | null;
   users: {
     id: string;
-    first_name: string;
-    last_name: string;
+    name: string;
     email: string;
     avatar_url: string | null;
   };
@@ -128,7 +127,7 @@ export function WinnersList({ initialWinners = [] }: WinnersListProps) {
                     {winner.users.avatar_url ? (
                       <Image
                         src={winner.users.avatar_url || "/placeholder.svg"}
-                        alt={`${winner.users.first_name} ${winner.users.last_name}`}
+                        alt={`${winner.users.name}`}
                         width={32}
                         height={32}
                         className="rounded-full"
@@ -139,9 +138,7 @@ export function WinnersList({ initialWinners = [] }: WinnersListProps) {
                       </div>
                     )}
                     <div>
-                      <p>
-                        {winner.users.first_name} {winner.users.last_name}
-                      </p>
+                      <p>{winner.users.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {winner.users.email}
                       </p>
@@ -155,7 +152,7 @@ export function WinnersList({ initialWinners = [] }: WinnersListProps) {
                     #{winner.position}
                   </Badge>
                 </TableCell>
-                <TableCell>${winner.amount.toFixed(2)}</TableCell>
+                <TableCell>KES{winner.amount.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={

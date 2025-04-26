@@ -52,95 +52,168 @@ export async function getRaffleSettings() {
 
 /**
  * Get the current active raffle cycle or create one if none exists
+ * For first month of quarter: populate eligible_users with all active users
+ * For subsequent months: inherit drawn_users from previous month and filter eligible_users
  */
 export async function getCurrentRaffleCycle() {
   const supabase = await createClient();
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  // Get current quarter (0-3)
-  const currentQuarter = Math.floor(currentDate.getMonth() / 4);
-  // Get the start month of the quarter (0, 4, 8)
+  const currentMonth = currentDate.getMonth();
+  const currentQuarter = Math.floor(currentMonth / 4);
   const startMonth = currentQuarter * 4;
+  const isFirstMonthOfCycle = currentMonth === startMonth;
+  const isLastMonthOfCycle = currentMonth === startMonth + 3;
 
-  // Check if we have a cycle for the current quarter
-  const { data: existingCycle, error: fetchError } = await supabase
+  // Check if we already have a cycle for the current month
+  const { data: currentMonthCycle, error: currentCycleError } = await supabase
     .from("raffle_cycles")
     .select("*")
     .eq("year", currentYear)
-    .gte("month", startMonth)
-    .lt("month", startMonth + 4)
-    .order("month", { ascending: true });
+    .eq("month", currentMonth)
+    .maybeSingle();
 
-  if (fetchError)
-    throw new Error(`Failed to fetch raffle cycle: ${fetchError.message}`);
+  if (currentCycleError) {
+    console.error("Error fetching current month cycle:", currentCycleError);
+    throw new Error(`Failed to fetch current month raffle cycle: ${currentCycleError.message}`);
+  }
 
-  // If we have active cycles for this quarter, return the earliest one that's not completed
-  const activeCycle = existingCycle?.find((cycle) => !cycle.is_completed);
-  if (activeCycle) return activeCycle;
+  // If we already have a cycle for this month, return it
+  if (currentMonthCycle) {
+    return currentMonthCycle;
+  }
 
-  // If no active cycle exists for the current month, create one
-  const currentMonth = currentDate.getMonth();
+  let eligible_users: string[] = [];
+  let drawn_users: string[] = [];
 
-  // Since we're not fetching users, we'll create a new cycle with empty arrays
-  // The eligible_users should be populated separately or already exist
+  // Case 1: First month of the cycle - populate with all active users
+  if (isFirstMonthOfCycle) {
+    console.log(`Creating first month of cycle (${currentMonth}). Fetching all active users.`);
+    
+    // Fetch all active users from the users table
+    const { data: activeUsers, error: usersError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("status", "active");
+    
+    if (usersError) {
+      console.error("Error fetching active users:", usersError);
+      throw new Error(`Failed to fetch active users: ${usersError.message}`);
+    }
+    
+    // Extract user IDs for eligible_users
+    eligible_users = activeUsers?.map(user => user.id) || [];
+    drawn_users = []; // Empty for first month
+    
+  } 
+  // Case 2: Subsequent month in cycle - inherit from previous month
+  else {
+    console.log(`Creating subsequent month of cycle (${currentMonth}). Inheriting from previous month.`);
+    
+    // Get the previous month's cycle
+    const previousMonth = currentMonth - 1;
+    const { data: previousCycle, error: previousCycleError } = await supabase
+      .from("raffle_cycles")
+      .select("*")
+      .eq("year", currentYear)
+      .eq("month", previousMonth)
+      .maybeSingle();
+    
+    if (previousCycleError) {
+      console.error("Error fetching previous month cycle:", previousCycleError);
+      throw new Error(`Failed to fetch previous month raffle cycle: ${previousCycleError.message}`);
+    }
+    
+    if (!previousCycle) {
+      console.warn(`No previous cycle found for ${currentYear}-${previousMonth}. This may indicate a gap in the cycle.`);
+      
+      // Fallback: Get the most recent cycle in this quarter
+      const { data: fallbackCycle, error: fallbackError } = await supabase
+        .from("raffle_cycles")
+        .select("*")
+        .eq("year", currentYear)
+        .gte("month", startMonth)
+        .lt("month", currentMonth)
+        .order("month", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (fallbackError || !fallbackCycle) {
+        // If no previous cycle in this quarter, treat as first month
+        console.log("No previous cycles found in quarter. Treating as first month of cycle.");
+        
+        // Fetch all active users
+        const { data: activeUsers, error: usersError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("status", "active");
+        
+        if (usersError) {
+          throw new Error(`Failed to fetch active users: ${usersError.message}`);
+        }
+        
+        eligible_users = activeUsers?.map(user => user.id) || [];
+        drawn_users = [];
+      } else {
+        // Use fallback cycle
+        drawn_users = fallbackCycle.drawn_users || [];
+        
+        // Filter out drawn users from eligible users
+        eligible_users = (fallbackCycle.eligible_users || []).filter(
+          (userId: string) => !drawn_users.includes(userId)
+        );
+      }
+    } else {
+      // Normal case: Previous cycle exists
+      drawn_users = previousCycle.drawn_users || [];
+      
+      // For the last month of cycle, all remaining eligible users become winners
+      if (isLastMonthOfCycle) {
+        eligible_users = []; // No eligible users for drawing in last month
+      } else {
+        // Filter out drawn users from eligible users
+        eligible_users = (previousCycle.eligible_users || []).filter(
+          (userId: string) => !drawn_users.includes(userId)
+        );
+      }
+    }
+  }
+
+  // Create the new cycle
   const { data: newCycle, error: createError } = await supabase
     .from("raffle_cycles")
     .insert({
       year: currentYear,
       month: currentMonth,
-      eligible_users: [], // Empty array, to be populated separately
-      drawn_users: [],
+      eligible_users: eligible_users,
+      drawn_users: drawn_users,
       winners_count: 0,
       is_completed: false,
     })
     .select()
     .single();
 
-  if (createError)
+  if (createError) {
+    // Handle case where another process might have created the record (race condition)
+    if (createError.code === '23505') { // Unique constraint violation
+      const { data: refetchedCycle, error: refetchError } = await supabase
+        .from("raffle_cycles")
+        .select("*")
+        .eq("year", currentYear)
+        .eq("month", currentMonth)
+        .single();
+        
+      if (refetchError) {
+        throw new Error(`Failed to refetch raffle cycle: ${refetchError.message}`);
+      }
+      
+      return refetchedCycle;
+    }
+    
     throw new Error(`Failed to create raffle cycle: ${createError.message}`);
+  }
+
   return newCycle;
-}
-
-// Helper function to add eligible users to a cycle with deduplication
-export async function addEligibleUsersToCycle(
-  cycleId: string,
-  users: UserProfile[]
-) {
-  const supabase = await createClient();
-
-  // First get the current cycle
-  const { data: cycle, error: fetchError } = await supabase
-    .from("raffle_cycles")
-    .select("eligible_users")
-    .eq("id", cycleId)
-    .single();
-
-  if (fetchError)
-    throw new Error(`Failed to fetch cycle: ${fetchError.message}`);
-
-  // Create a set of user IDs for deduplication
-  const existingUserIds = new Set(
-    (cycle.eligible_users || []).map((user: UserProfile) => user.id)
-  );
-
-  // Filter out duplicate users
-  const newUsers = users.filter((user) => !existingUserIds.has(user.id));
-
-  // Combine existing and new users
-  const updatedEligibleUsers = [...(cycle.eligible_users || []), ...newUsers];
-
-  // Update the cycle
-  const { error: updateError } = await supabase
-    .from("raffle_cycles")
-    .update({
-      eligible_users: updatedEligibleUsers,
-    })
-    .eq("id", cycleId);
-
-  if (updateError)
-    throw new Error(`Failed to update eligible users: ${updateError.message}`);
-
-  return { success: true, addedUsers: newUsers.length };
 }
 
 /**
@@ -207,17 +280,15 @@ export async function drawRaffleWinners() {
   if (updateError)
     throw new Error(`Failed to update raffle cycle: ${updateError.message}`);
 
-  // Create raffle winners records
   const rafflePeriod = new Date(currentCycle.year, currentCycle.month, 1)
     .toISOString()
     .split("T")[0];
 
-  // Determine reward amounts (simplified example, adjust as needed)
   const winnerInserts = newWinners.map((winner, index) => ({
     raffle_period: rafflePeriod,
     user_id: winner.id,
     position: index + 1,
-    amount: index === 0 ? 100.0 : 50.0, // First place gets more
+    amount: 4000,
     payment_status: "pending",
   }));
 
@@ -298,6 +369,17 @@ export async function getRaffleWinners(year: number, month: number) {
     cycle,
     winners: winners || [],
   };
+}
+
+/**
+ * Get winners for the current month's raffle
+ */
+export async function getCurrentWinners() {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  
+  return getRaffleWinners(currentYear, currentMonth);
 }
 
 /**
@@ -391,4 +473,48 @@ export async function getRaffleStatistics() {
       cyclesData?.filter((cycle) => cycle.is_completed).length || 0,
     recentCycles: cyclesData?.slice(0, 5) || [],
   };
+}
+
+/**
+ * Add eligible users to cycle
+ */
+export async function addEligibleUsersToCycle(
+  cycleId: string,
+  users: UserProfile[]
+) {
+  const supabase = await createClient();
+
+  // First get the current cycle
+  const { data: cycle, error: fetchError } = await supabase
+    .from("raffle_cycles")
+    .select("eligible_users")
+    .eq("id", cycleId)
+    .single();
+
+  if (fetchError)
+    throw new Error(`Failed to fetch cycle: ${fetchError.message}`);
+
+  // Create a set of user IDs for deduplication
+  const existingUserIds = new Set(
+    (cycle.eligible_users || []).map((user: UserProfile) => user.id)
+  );
+
+  // Filter out duplicate users
+  const newUsers = users.filter((user) => !existingUserIds.has(user.id));
+
+  // Combine existing and new users
+  const updatedEligibleUsers = [...(cycle.eligible_users || []), ...newUsers];
+
+  // Update the cycle
+  const { error: updateError } = await supabase
+    .from("raffle_cycles")
+    .update({
+      eligible_users: updatedEligibleUsers,
+    })
+    .eq("id", cycleId);
+
+  if (updateError)
+    throw new Error(`Failed to update eligible users: ${updateError.message}`);
+
+  return { success: true, addedUsers: newUsers.length };
 }

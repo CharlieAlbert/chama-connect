@@ -26,8 +26,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarIcon, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, CheckCircle2, User } from "lucide-react";
 import { getRaffleWinners } from "@/lib/supabase/server-extended/ruffle";
+import Image from "next/image";
 
 export function PastRaffles() {
   const [isLoading, setIsLoading] = useState(false);
@@ -147,11 +148,30 @@ export function PastRaffles() {
               {winners.map((winner) => (
                 <TableRow key={winner.id}>
                   <TableCell className="font-medium">
-                    {winner.users.name}
-                    <p className="text-xs text-muted-foreground">
-                      {winner.users.email}
-                    </p>
-                  </TableCell>
+                  <div className="flex items-center gap-2">
+                    {winner.users.avatar_url ? (
+                      <Image
+                        src={winner.users.avatar_url || "/placeholder.svg"}
+                        alt={`${winner.users.name}`}
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-4 w-4" />
+                      </div>
+                    )}
+                    <div>
+                      <p>
+                        {winner.users.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {winner.users.email}
+                      </p>
+                    </div>
+                  </div>
+                </TableCell>
                   <TableCell>
                     <Badge
                       variant={winner.position === 1 ? "default" : "outline"}
@@ -159,7 +179,7 @@ export function PastRaffles() {
                       #{winner.position}
                     </Badge>
                   </TableCell>
-                  <TableCell>${winner.amount.toFixed(2)}</TableCell>
+                  <TableCell>Ksh{" "}{winner.amount.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
