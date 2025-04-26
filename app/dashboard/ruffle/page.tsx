@@ -9,7 +9,6 @@ import {
   getCurrentWinners 
 } from "@/lib/supabase/server-extended/ruffle";
 
-// Define the Winner interface to match what the WinnersList component expects
 interface Winner {
   id: string;
   position: number;
