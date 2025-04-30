@@ -1,8 +1,8 @@
 import { UserLoansTable } from "./_components/user-loans-table";
-import { getSelfLoans } from "@/lib/supabase/server-extended/loans";
+import { getSelfLoansWithDetails } from "@/lib/supabase/server-extended/loans";
 
 export default async function LoansPage() {
-  const loans = await getSelfLoans();
+  const loans = await getSelfLoansWithDetails();
 
   return (
     <div className="container mx-auto px-4 py-8">
