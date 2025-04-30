@@ -21,7 +21,7 @@ interface Loan {
   id: string
   amount: number
   loan_type: string
-  status: "pending" | "accepted" | "rejected"
+  status: "in_review" | "accepted" | "rejected"
   application_date: string
   purpose?: string
   users: {
@@ -95,6 +95,13 @@ export default function LoanReviewPage() {
           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
             <Clock className="h-3 w-3" />
             Pending
+          </Badge>
+        )
+      case "in_review":
+        return (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            In Review
           </Badge>
         )
       case "accepted":
@@ -202,7 +209,7 @@ export default function LoanReviewPage() {
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Applied</TableHead>
-                      {loans.some((loan) => loan.status === "pending") && (
+                      {loans.some((loan) => loan.status === "in_review") && (
                         <TableHead className="text-right">Actions</TableHead>
                       )}
                     </TableRow>
@@ -242,7 +249,7 @@ export default function LoanReviewPage() {
                               })
                             : "-"}
                         </TableCell>
-                        {loan.status === "pending" && (
+                        {loan.status === "in_review" && (
                           <TableCell className="text-right">
                             <TooltipProvider>
                               <Tooltip>
@@ -347,7 +354,7 @@ export default function LoanReviewPage() {
                         </div>
                       </div>
 
-                      {loan.status === "pending" && (
+                      {loan.status === "in_review" && (
                         <div className="flex space-x-2 mt-2">
                           <Button
                             className="flex-1 bg-emerald-600 hover:bg-emerald-700"

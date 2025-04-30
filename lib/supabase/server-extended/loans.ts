@@ -83,3 +83,23 @@ export async function ReviewLoanRequest({
   if (error) throw error;
   return data;
 }
+
+export async function getSelfLoans() {
+  const supabase = await createClient();
+  // Get current user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("User not found");
+  // Fetch loans for this user
+  const { data, error } = await supabase
+    .from("loan_requests")
+    .select(
+      "id, amount, loan_type, status, application_date, interest_rate, repayment_terms"
+    )
+    .eq("user_id", user.id)
+    .order("application_date", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}

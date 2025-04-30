@@ -13,6 +13,7 @@ import {
   Home,
   Settings,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getInitials } from "@/utils/initials";
@@ -77,9 +78,23 @@ export function DashboardSidebar() {
           <NavItem
             href="/dashboard/loans"
             icon={<CreditCard size={18} />}
-            label="Loan Processing"
+            label="My Loans"
             isActive={isActive("/dashboard/loans")}
           />
+          <NavItem
+            href="/dashboard/loans/apply"
+            icon={<CreditCard size={18} />}
+            label="Apply for Loan"
+            isActive={isActive("/dashboard/loans/apply")}
+          />
+          {user?.role === "treasurer" || user?.role === "super-admin" ? (
+            <NavItem
+              href="/dashboard/loans/review"
+              icon={<ShieldCheck size={18} />}
+              label="Review Loans"
+              isActive={isActive("/dashboard/loans/review")}
+            />
+          ) : null}
 
           <NavItem
             href="/dashboard/ruffle"
