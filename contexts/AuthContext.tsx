@@ -59,7 +59,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const privateRoutes = [
     "/dashboard",
     "/profile",
-    // Add other protected routes here
   ];
 
   function isPublicRoute(path: string) {
