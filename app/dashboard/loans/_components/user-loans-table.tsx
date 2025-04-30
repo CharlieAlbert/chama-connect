@@ -15,8 +15,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,10 +30,10 @@ import {
   FileText,
   MoreHorizontal,
   PiggyBank,
-  Printer,
   RefreshCw,
   XCircle,
 } from "lucide-react";
+import { LoanDetailsDialog } from "./loan-details-dialog"; // Import the new component
 
 export type UserLoan = {
   id: string;
@@ -48,10 +46,38 @@ export type UserLoan = {
   purpose?: string;
   remaining_balance?: number;
   next_payment_date?: string;
+  issue_date?: string;
+  users?: { phone?: string };
 };
 
 interface UserLoansTableProps {
   loans: UserLoan[];
+}
+
+function calculateMonthlyPayment(
+  amount: number,
+  interestRate: number,
+  term: string
+) {
+  // Extract number of months from term (e.g. "6 months")
+  const match = term.match(/(\d+)/);
+  const months = match ? Number.parseInt(match[1], 10) : 1;
+  // monthly = (amount + (amount * interestRate)) / months
+  const total = amount + amount * interestRate;
+  return total / months;
+}
+
+function calculateDueDate(issueDate?: string, term?: string) {
+  if (!issueDate || !term) return "-";
+  const match = term.match(/(\d+)/);
+  const months = match ? Number.parseInt(match[1], 10) : 0;
+  const date = new Date(issueDate);
+  date.setMonth(date.getMonth() + months);
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function UserLoansTable({ loans }: UserLoansTableProps) {
@@ -62,6 +88,8 @@ export function UserLoansTable({ loans }: UserLoansTableProps) {
     "date"
   );
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [selectedLoan, setSelectedLoan] = useState<UserLoan | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   // Calculate summary statistics
   const totalLoans = loans.length;
@@ -379,25 +407,14 @@ export function UserLoansTable({ loans }: UserLoansTableProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem className="flex items-center">
+                            <DropdownMenuItem
+                              className="flex items-center"
+                              onClick={() => {
+                                setSelectedLoan(loan);
+                                setDetailsDialogOpen(true);
+                              }}
+                            >
                               <Eye className="h-4 w-4 mr-2" /> View Details
-                            </DropdownMenuItem>
-                            {loan.status === "accepted" && (
-                              <>
-                                <DropdownMenuItem className="flex items-center">
-                                  <FileText className="h-4 w-4 mr-2" /> Payment
-                                  Schedule
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="flex items-center">
-                                  <Download className="h-4 w-4 mr-2" /> Download
-                                  Statement
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="flex items-center">
-                              <Printer className="h-4 w-4 mr-2" /> Print Details
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -529,7 +546,15 @@ export function UserLoansTable({ loans }: UserLoansTableProps) {
                     </div>
                   </CardContent>
                   <CardFooter className="px-4 py-3 bg-muted/30 flex justify-between">
-                    <Button variant="ghost" size="sm" className="text-xs h-8">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-8"
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setDetailsDialogOpen(true);
+                      }}
+                    >
                       <Eye className="h-3 w-3 mr-1" /> Details
                     </Button>
                     {loan.status === "accepted" && (
@@ -542,6 +567,30 @@ export function UserLoansTable({ loans }: UserLoansTableProps) {
                         <RefreshCw className="h-3 w-3 mr-1" /> Check Status
                       </Button>
                     )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8"
+                          aria-label="Open menu"
+                        >
+                          <MoreHorizontal className="h-3 w-3" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="flex items-center"
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setDetailsDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" /> View Details
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </CardFooter>
                 </Card>
               ))
@@ -557,6 +606,15 @@ export function UserLoansTable({ loans }: UserLoansTableProps) {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Enhanced Loan Details Dialog */}
+      <LoanDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        selectedLoan={selectedLoan}
+        calculateMonthlyPayment={calculateMonthlyPayment}
+        calculateDueDate={calculateDueDate}
+      />
     </div>
   );
 }
