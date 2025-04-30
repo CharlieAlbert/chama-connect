@@ -27,7 +27,6 @@ export default async function RafflePage() {
   const initialCycle = await getCurrentRaffleCycle();
   const { winners: rawWinners = [] } = await getCurrentWinners();
   
-  // Transform the winners data to match the expected interface
   const winners: Winner[] = rawWinners.map((winner: any) => {
     // The users field is an array in the database, but the component expects an object
     const userData = winner.users && Array.isArray(winner.users) ? winner.users[0] : winner.users;
