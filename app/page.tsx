@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,8 +12,25 @@ import {
   CreditCard,
   Gift,
 } from "lucide-react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import LandingLoader from "@/components/ui/LandingLoader";
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return <LandingLoader />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}

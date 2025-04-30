@@ -21,6 +21,10 @@ type AuthContextType = {
   error: string | null;
   revalidate: () => Promise<void>;
   logout: () => Promise<void>;
+  publicRoutes: string[];
+  privateRoutes: string[];
+  isPublicRoute: (path: string) => boolean;
+  isPrivateRoute: (path: string) => boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +33,10 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   revalidate: async () => {},
   logout: async () => {},
+  publicRoutes: [],
+  privateRoutes: [],
+  isPublicRoute: () => false,
+  isPrivateRoute: () => false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -37,6 +45,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
   const router = useRouter();
+
+  // Define public and private routes centrally
+  const publicRoutes = [
+    "/",
+    "/auth/login",
+    "/auth/signup",
+    "/auth/verify-otp",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+  ];
+
+  const privateRoutes = [
+    "/dashboard",
+    "/profile",
+    // Add other protected routes here
+  ];
+
+  function isPublicRoute(path: string) {
+    return publicRoutes.some((route) => path === route || path.startsWith(route + "/"));
+  }
+
+  function isPrivateRoute(path: string) {
+    return privateRoutes.some((route) => path === route || path.startsWith(route + "/"));
+  }
 
   const fetchUser = useCallback(async () => {
     setLoading(true);
@@ -106,6 +138,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         error,
         revalidate: fetchUser,
         logout,
+        publicRoutes,
+        privateRoutes,
+        isPublicRoute,
+        isPrivateRoute,
       }}
     >
       {children}
