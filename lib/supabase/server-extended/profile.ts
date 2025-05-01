@@ -141,9 +141,7 @@ export async function checkUserRole(user_id: string, allowedRoles: string[]) {
     .single();
   if (error) throw error;
   if (!user || !allowedRoles.includes(user.role)) {
-    throw new Error(
-      `User does not have required role. Required: ${allowedRoles.join(", ")}`
-    );
+    throw new Error(`User does not have required role for this operation.`);
   }
   return user.role;
 }

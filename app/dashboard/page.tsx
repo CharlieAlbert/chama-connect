@@ -1,6 +1,7 @@
-import { RecentActivity } from "./dashboard-activity"
-import { QuickActions } from "./dashboard-actions"
-import { DashboardMetrics } from "./dashboard-metrics"
+import { Suspense } from "react";
+import { RecentActivity } from "./_components/dashboard-activity";
+import { QuickActions } from "./_components/dashboard-actions";
+import { DashboardMetrics } from "./_components/dashboard-metrics";
 
 export default function DashboardPage() {
   return (
@@ -9,11 +10,17 @@ export default function DashboardPage() {
         <main className="flex-1 container mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-          <DashboardMetrics />
+          {/* Prefetch and prerender metrics for fast loading */}
+          <Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse h-28" />}>
+            <DashboardMetrics />
+          </Suspense>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             <div className="lg:col-span-2">
-              <RecentActivity />
+              {/* Prefetch and prerender activity for fast loading */}
+              <Suspense fallback={<div className="p-4">Loading activity...</div>}>
+                <RecentActivity />
+              </Suspense>
             </div>
             <div>
               <QuickActions />
@@ -22,5 +29,5 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }
