@@ -47,7 +47,7 @@ export type UserLoan = {
   remaining_balance?: number;
   next_payment_date?: string;
   issue_date?: string;
-  users?: { phone?: string };
+  users?: { phone?: string }[];
 };
 
 interface UserLoansTableProps {

@@ -21,6 +21,30 @@ export async function getLoanRequests() {
   return data;
 }
 
+export async function getAllLoansWithUsers() {
+  const supabase = await createClient();
+
+  // Only fetch loans with status 'approved' and join user info
+  const { data, error } = await supabase.from("loan_requests").select(`
+    *,
+    users:user_id (
+      id,
+      avatar_url,
+      name,
+      email,
+      phone
+    )
+  `).eq("status", "accepted");
+
+  if (error) throw error;
+
+  // Ensure .users is always an array for UI compatibility
+  return (data ?? []).map((loan) => ({
+    ...loan,
+    users: loan.users ? [loan.users] : [],
+  }));
+}
+
 export async function RequestLoan(
   request: Omit<
     LoanRequestInsert,
@@ -107,12 +131,17 @@ export async function getSelfLoans() {
 export async function getSelfLoansWithDetails() {
   const supabase = await createClient();
   // Get current user
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("User not found");
   // Fetch loans for this user with extra details (phone, issue_date)
   const { data, error } = await supabase
     .from("loan_requests")
-    .select(`id, amount, loan_type, status, application_date, interest_rate, repayment_terms, issue_date, users:user_id(phone)`) // users: join to get phone
+    .select(
+      `id, amount, loan_type, status, application_date, interest_rate, repayment_terms, issue_date, users:user_id(phone)`
+    ) // users: join to get phone
     .eq("user_id", user.id)
     .order("application_date", { ascending: false });
   if (error) throw error;
