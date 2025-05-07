@@ -89,8 +89,8 @@ export async function getSelfProfile() {
 export async function updateUserProfile(profileData: {
   name?: string;
   phone?: string;
+  email?: string;
   avatar_url?: string;
-  role?: string;
 }) {
   const supabase = await createClient();
 

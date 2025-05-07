@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SignInSuccess = {
   success: boolean;
@@ -36,7 +37,10 @@ const loginAction = async (
     }
 
     const result = await SignInRequest({ email, password });
-    return result;
+    if (result.error) {
+      return { error: result.error };
+    }
+    return { success: true, message: "Login successful" };
   } catch (error) {
     return {
       error:

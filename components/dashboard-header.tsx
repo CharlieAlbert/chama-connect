@@ -47,7 +47,10 @@ export function DashboardHeader() {
               </button>
             </div>
 
-            <div className="hidden md:flex items-center">
+            <Link 
+              href="/dashboard/profile" 
+              className="hidden md:flex items-center hover:bg-muted/50 p-2 rounded-md transition-colors"
+            >
               {user?.avatar_url ? (
                 <div className="w-8 h-8 rounded-full overflow-hidden">
                   <Image
@@ -67,8 +70,9 @@ export function DashboardHeader() {
               )}
               <div className="ml-2">
                 <p className="text-sm font-medium">{displayName}</p>
+                <p className="text-xs text-muted-foreground">View profile</p>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </header>

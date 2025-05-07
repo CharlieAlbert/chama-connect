@@ -149,6 +149,11 @@ export const SignInRequest = async ({ email, password }: SignIn) => {
     return { error: "Invalid email or password" };
   }
 
+  await supabase
+    .from("users")
+    .update({ last_login: new Date().toISOString() })
+    .eq("auth_id", data.user.id);
+
   return { success: true, message: "Successfully signed in", data };
 };
 
@@ -250,4 +255,17 @@ export const VerifyPasswordReset = async ({
   }
 
   return { success: true, message: "Password updated successfully" };
+};
+
+export const SignOutRequest = async () => {
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    console.error("Sign out error:", error.message);
+    return { error: "Failed to sign out. Please try again." };
+  }
+
+  return { success: true, message: "Successfully signed out" };
 };

@@ -70,8 +70,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const fetchUser = useCallback(async () => {
-    setLoading(true);
     try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        setUser(null);
+        return;
+      }
+      
       const { data, error } = await getSelfProfile();
       if (error) {
         setError(error);
@@ -79,7 +84,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (data) {
         setUser(data);
         setError(null);
-        console.log("User logged in: ", data);
       }
     } catch (err) {
       setError("An unexpected error occurred.");
@@ -87,7 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase.auth]);
 
   const logout = useCallback(async () => {
     try {
@@ -112,14 +116,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.prefetch("/auth/signup");
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event) => {
-        console.log("Auth state changed:", event);
+      async (event, session) => {
         if (event === "SIGNED_IN") {
+          setLoading(true);
           await fetchUser();
-          router.refresh();
+          router.push("/dashboard");
+          setLoading(false);
+        } else if (event === "TOKEN_REFRESHED") {
+          await fetchUser();
         } else if (event === "SIGNED_OUT") {
           setUser(null);
-          router.refresh();
+          router.push("/");
         }
       }
     );

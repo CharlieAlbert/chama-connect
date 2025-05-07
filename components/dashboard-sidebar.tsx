@@ -21,7 +21,11 @@ import Image from "next/image";
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  const handleSignOut = async () => {
+    logout();
+  };
 
   const isActive = (path: string) => {
     return pathname === path;
@@ -115,7 +119,8 @@ export function DashboardSidebar() {
           />
 
           <NavItem
-            href="/auth/logout"
+            href="#"
+            onClick={handleSignOut}
             icon={<LogOut size={18} />}
             label="Logout"
             isActive={false}
@@ -161,9 +166,24 @@ interface NavItemProps {
   icon: React.ReactNode;
   label: string;
   isActive: boolean;
+  onClick?: () => void | Promise<void>;
 }
 
-function NavItem({ href, icon, label, isActive }: NavItemProps) {
+function NavItem({ href, icon, label, isActive, onClick }: NavItemProps) {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+          isActive ? "bg-emerald text-primary-foreground" : "hover:bg-muted"
+        }`}
+      >
+        <span className="mr-2">{icon}</span>
+        <span>{label}</span>
+      </button>
+    );
+  }
   return (
     <Link
       href={href}

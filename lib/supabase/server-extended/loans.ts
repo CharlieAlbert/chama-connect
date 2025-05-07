@@ -24,7 +24,7 @@ export async function getLoanRequests() {
 export async function getAllLoansWithUsers() {
   const supabase = await createClient();
 
-  // Only fetch loans with status 'approved' and join user info
+  // Only fetch loans with status 'accepted' and join user info
   const { data, error } = await supabase.from("loan_requests").select(`
     *,
     users:user_id (
