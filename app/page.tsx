@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import type React from "react";
 import Link from "next/link";
@@ -34,23 +34,23 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="border-b border-emerald-100 bg-emerald-50">
+      <header className="bg-gradient-to-b from-black to-[#a09e9e] ">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <span className="text-2xl font-bold text-emerald-600">
+              <span className="text-3xl font-bold text-teal-500">
                 Chama Connect
               </span>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 href="/auth/login"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                className="text-sm font-medium text-teal-200 hover:text-gray-900"
               >
                 Member Login
               </Link>
               <Link href="/auth/signup">
-                <Button size="sm" className="bg-emerald-500">
+                <Button size="sm" className="bg-teal-500">
                   Register
                 </Button>
               </Link>
@@ -60,21 +60,21 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-white to-emerald-50">
+      <section className="bg-gradient-to-t from-[#771302] to-[#a09e9e]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-red-900">
                 Welcome to Chama Connect
               </h1>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-white">
                 Our custom platform designed to streamline our group's
                 operations, from financial tracking to meeting minutes, loan
                 processing, monthly ruffles, and governance.
               </p>
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-4">
                 <Link href="/auth/login">
-                  <Button size="lg" className="w-full sm:w-auto bg-emerald-500">
+                  <Button size="lg" className="w-full sm:w-auto bg-red-900">
                     Member Login <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -82,7 +82,7 @@ export default function HomePage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full sm:w-auto bg-white text-black border border-emerald-100"
+                    className="w-full sm:w-auto  text-black border border-emerald-100 bg-red-50"
                   >
                     New Member Registration
                   </Button>
@@ -103,9 +103,36 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+    
+      <>
+        <style>
+          {`
+      @keyframes slideInOut {
+        0% { transform: translateX(-100%); opacity: 0; }
+        25% { transform: translateX(0); opacity: 1; }
+        75% { transform: translateX(0); opacity: 1; }
+        100% { transform: translateX(100%); opacity: 0; }
+      }
+    `}
+        </style>
+
+        <section className="">
+          <h1
+            className="text-center text-4xl text-[#06dcd5] font-serif italic"
+            style={{
+              animation: "slideInOut 5s ease-in-out infinite",
+            }}
+          >
+            Rooted in Trust. Growing with Purpose.Stronger Every Year. United Always.
+          </h1>
+        </section>
+      </>
 
       {/* Features Section */}
-      <section className="py-16 md:py-24 bg-white" id="features">
+      <section
+        className="py-16 md:py-24 bg-gradient-to-b from-white to-[#a57474ee]"
+        id="features"
+      >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
@@ -119,36 +146,61 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard
-              icon={<BarChart3 className="h-10 w-10 text-emerald-600" />}
+              icon={<BarChart3 className="h-10 w-10 text-[#e31418]" />}
               title="Financial Tracking"
               description="Monitor contributions, track expenses, and view financial reports in real-time. Stay updated on our group's financial health."
             />
             <FeatureCard
-              icon={<FileText className="h-10 w-10 text-emerald-600" />}
+              icon={<FileText className="h-10 w-10 text-[#e31418]" />}
               title="Meeting Records"
               description="Access all meeting minutes, decisions, and action items in one place. Never miss important information from our gatherings."
             />
             <FeatureCard
-              icon={<ShieldCheck className="h-10 w-10 text-emerald-600" />}
+              icon={<ShieldCheck className="h-10 w-10 text-[#e31418]" />}
               title="Group Governance"
               description="Transparent voting, role management, and decision tracking to ensure our group operates with clear accountability."
             />
             <FeatureCard
-              icon={<CreditCard className="h-10 w-10 text-emerald-600" />}
+              icon={<CreditCard className="h-10 w-10 text-[#e31418]" />}
               title="Loan Processing"
               description="Apply for loans, track approval status, and manage repayments all in one place. Simplified lending within our community."
             />
             <FeatureCard
-              icon={<Gift className="h-10 w-10 text-emerald-600" />}
+              icon={<Gift className="h-10 w-10 text-[#e31418]" />}
               title="Monthly Ruffle System"
               description="Participate in our transparent monthly ruffle for fund distribution. Fair, random selection with automatic notifications."
             />
           </div>
         </div>
       </section>
+       
+      <>
+        <style>
+          {`
+      @keyframes slideInOut {
+        0% { transform: translateX(-100%); opacity: 0; }
+        25% { transform: translateX(0); opacity: 1; }
+        75% { transform: translateX(0); opacity: 1; }
+        100% { transform: translateX(100%); opacity: 0; }
+      }
+    `}
+        </style>
+
+        <section className="bg-[#a57474ee]">
+          <h1
+            className="text-center text-4xl text-[#06dcd5] font-serif italic"
+            style={{
+              animation: "slideInOut 5s ease-in-out infinite",
+            }}
+          >
+           From Small Steps to Giant Leaps — Together.Collaborate. Grow. Succeed..
+          </h1>
+        </section>
+      </>
+
 
       {/* About Section */}
-      <section className="bg-emerald-50 py-16 md:py-24">
+      <section className="bg-radial from-white via-red-100 to-[#472223] py-16 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
@@ -180,9 +232,9 @@ export default function HomePage() {
       </section>
 
       {/* Member Access Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-white]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-emerald-600 rounded-xl p-8 md:p-12 shadow-xl">
+          <div className="bg-[#300102] rounded-xl p-8 md:p-12 shadow-xl">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-3xl font-bold text-white mb-4">
                 Member Access
@@ -205,7 +257,7 @@ export default function HomePage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full sm:w-auto bg-transparent text-white border-white hover:bg-emerald-700"
+                    className="w-full sm:w-auto bg-transparent text-white border-white hover:bg-teal-500"
                   >
                     New Member Registration
                   </Button>
@@ -246,14 +298,14 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-50 border-t mt-auto">
+      <footer className="bg-gradient-to-b from-[#fcfbfb]  to-black border-t mt-auto">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <span className="text-xl font-bold text-emerald-600">
+              <span className="text-xl font-bold text-teal-500">
                 Chama Connect
               </span>
-              <p className="text-gray-600 mt-2">Growing together since 2022</p>
+              <p className="text-gray-900 mt-2">Growing together since 2022</p>
             </div>
             <div className="flex space-x-6">
               <Link href="/about" className="text-gray-600 hover:text-gray-900">
@@ -276,7 +328,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
+          <div className="mt-8 pt-8 border-t border-gray-200 text-center text-white  text-sm">
             &copy; {new Date().getFullYear()} Chama Connect. All rights
             reserved. For members only.
           </div>
@@ -311,11 +363,11 @@ interface EventCardProps {
 
 function EventCard({ date, title, description, location }: EventCardProps) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-      <div className="text-emerald-600 font-medium mb-2">{date}</div>
+    <div className="bg-[#5e0b0b] p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+      <div className="text-teal-500 font-medium mb-2">{date}</div>
       <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600 mb-4">{description}</p>
-      <div className="flex items-center text-gray-500 text-sm">
+      <p className="text-white mb-4">{description}</p>
+      <div className="flex items-center text-teal-500 text-sm">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="h-4 w-4 mr-1"
