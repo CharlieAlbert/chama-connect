@@ -79,6 +79,9 @@ export function AccountsTable({ accounts }: AccountsTableProps) {
     );
   }
 
+  // Calculate total amount
+  const totalAmount = accounts.reduce((sum, account) => sum + account.amount, 0);
+
   // Sort accounts
   const sortedAccounts = [...accounts].sort((a, b) => {
     if (sortField === "month") {
@@ -367,6 +370,13 @@ Thank you for your contribution!
 
   return (
     <div>
+      {/* Total Amount (Desktop) */}
+      <div className="hidden md:flex justify-end mb-2">
+        <div className="text-sm font-semibold text-muted-foreground">
+          Total Amount: <span className="font-bold text-emerald-700">{formatCurrency(totalAmount)}</span>
+        </div>
+      </div>
+
       {/* Desktop View */}
       <div className="hidden md:block">
         <Table>
@@ -464,6 +474,13 @@ Thank you for your contribution!
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Total Amount (Mobile) */}
+      <div className="md:hidden flex justify-end mb-2">
+        <div className="text-sm font-semibold text-muted-foreground">
+          Total Amount: <span className="font-bold text-emerald-700">{formatCurrency(totalAmount)}</span>
+        </div>
       </div>
 
       {/* Mobile View */}

@@ -37,11 +37,38 @@ export interface ActivityItem {
 }
 
 export async function getDashboardMetrics(): Promise<
-  DashboardMetrics & { memberCount: number }
+  DashboardMetrics & { memberCount: number; growthRate: number }
 > {
-  const totalContributions = 0;
-
   const supabase = await createClient();
+
+  // Sum all 'amount' values from the accounts table
+  const { data: contributionsData, error: contributionsError } = await supabase
+    .from("accounts")
+    .select("amount, contribution_month");
+
+  let totalContributions = 0;
+  let previousMonthTotal = 0;
+  let growthRate = 0;
+
+  if (!contributionsError && contributionsData) {
+    totalContributions = contributionsData.reduce((sum: number, row: any) => sum + (row.amount || 0), 0);
+
+    // Calculate previous month
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthStr = prevMonth.toISOString().slice(0, 7); // YYYY-MM
+
+    previousMonthTotal = contributionsData
+      .filter((row: any) => (row.contribution_month || '').startsWith(prevMonthStr))
+      .reduce((sum: number, row: any) => sum + (row.amount || 0), 0);
+
+    if (previousMonthTotal > 0) {
+      growthRate = ((totalContributions - previousMonthTotal) / previousMonthTotal) * 100;
+    } else {
+      growthRate = totalContributions > 0 ? 100 : 0;
+    }
+  }
+
   const { data: activeLoansData } = await supabase
     .from("loan_requests")
     .select("amount")
@@ -67,6 +94,7 @@ export async function getDashboardMetrics(): Promise<
     nextMeeting,
     rufflePot,
     memberCount: memberCount || 0,
+    growthRate,
   };
 }
 

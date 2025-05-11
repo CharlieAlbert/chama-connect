@@ -6,6 +6,7 @@ import { getDashboardMetrics, type DashboardMetrics as MetricsType } from "@/lib
 // Extend MetricsType to include memberCount for correct typing
 interface MetricsWithMembers extends MetricsType {
   memberCount: number;
+  growthRate: number;
 }
 
 export function DashboardMetrics() {
@@ -38,8 +39,8 @@ export function DashboardMetrics() {
       <MetricCard
         title="Total Contributions"
         value={`KES ${metrics.totalContributions.toLocaleString()}`}
-        change="+12.5%"
-        isPositive={true}
+        change={`${metrics.growthRate >= 0 ? '+' : ''}${metrics.growthRate.toFixed(2)}%`}
+        isPositive={metrics.growthRate >= 0}
       />
       <MetricCard
         title="Active Loans"
