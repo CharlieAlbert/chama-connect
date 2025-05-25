@@ -3,10 +3,22 @@
 import { createClient } from "../server";
 import { Database } from "../types";
 import { checkUserRole } from "./profile";
+import { sendMinutesUpdateEmail } from "../../email-service";
 
 type MinutesInsert = Database["public"]["Tables"]["minutes"]["Row"];
 
 type MinutesUpdate = Database["public"]["Tables"]["minutes"]["Row"];
+
+async function getAllActiveUsers() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("email, name")
+    .eq("status", "active");
+
+  if (error) throw error;
+  return data;
+}
 
 export async function uploadMinutes({
   file,
@@ -73,6 +85,14 @@ export async function uploadMinutes({
   if (error) {
     throw new Error(error.message);
   }
+
+  // Send email notification to all active users
+  const activeUsers = await getAllActiveUsers();
+  const date = new Date(meeting_date);
+  const month = date.toLocaleString("default", { month: "long" });
+  const year = date.getFullYear();
+
+  await sendMinutesUpdateEmail(activeUsers, month, year);
 
   return data;
 }

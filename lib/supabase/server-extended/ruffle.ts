@@ -2,6 +2,7 @@
 
 import { createClient } from "../server";
 import { Database } from "../types";
+import { sendRaffleWinnersEmail } from "../../email-service";
 
 interface UserProfile {
   id: string;
@@ -75,7 +76,9 @@ export async function getCurrentRaffleCycle() {
 
   if (currentCycleError) {
     console.error("Error fetching current month cycle:", currentCycleError);
-    throw new Error(`Failed to fetch current month raffle cycle: ${currentCycleError.message}`);
+    throw new Error(
+      `Failed to fetch current month raffle cycle: ${currentCycleError.message}`
+    );
   }
 
   // If we already have a cycle for this month, return it
@@ -88,28 +91,31 @@ export async function getCurrentRaffleCycle() {
 
   // Case 1: First month of the cycle - populate with all active users
   if (isFirstMonthOfCycle) {
-    console.log(`Creating first month of cycle (${currentMonth}). Fetching all active users.`);
-    
+    console.log(
+      `Creating first month of cycle (${currentMonth}). Fetching all active users.`
+    );
+
     // Fetch all active users from the users table
     const { data: activeUsers, error: usersError } = await supabase
       .from("users")
       .select("id")
       .eq("status", "active");
-    
+
     if (usersError) {
       console.error("Error fetching active users:", usersError);
       throw new Error(`Failed to fetch active users: ${usersError.message}`);
     }
-    
+
     // Extract user IDs for eligible_users
-    eligible_users = activeUsers?.map(user => user.id) || [];
+    eligible_users = activeUsers?.map((user) => user.id) || [];
     drawn_users = []; // Empty for first month
-    
-  } 
+  }
   // Case 2: Subsequent month in cycle - inherit from previous month
   else {
-    console.log(`Creating subsequent month of cycle (${currentMonth}). Inheriting from previous month.`);
-    
+    console.log(
+      `Creating subsequent month of cycle (${currentMonth}). Inheriting from previous month.`
+    );
+
     // Get the previous month's cycle
     const previousMonth = currentMonth - 1;
     const { data: previousCycle, error: previousCycleError } = await supabase
@@ -118,15 +124,19 @@ export async function getCurrentRaffleCycle() {
       .eq("year", currentYear)
       .eq("month", previousMonth)
       .maybeSingle();
-    
+
     if (previousCycleError) {
       console.error("Error fetching previous month cycle:", previousCycleError);
-      throw new Error(`Failed to fetch previous month raffle cycle: ${previousCycleError.message}`);
+      throw new Error(
+        `Failed to fetch previous month raffle cycle: ${previousCycleError.message}`
+      );
     }
-    
+
     if (!previousCycle) {
-      console.warn(`No previous cycle found for ${currentYear}-${previousMonth}. This may indicate a gap in the cycle.`);
-      
+      console.warn(
+        `No previous cycle found for ${currentYear}-${previousMonth}. This may indicate a gap in the cycle.`
+      );
+
       // Fallback: Get the most recent cycle in this quarter
       const { data: fallbackCycle, error: fallbackError } = await supabase
         .from("raffle_cycles")
@@ -137,27 +147,31 @@ export async function getCurrentRaffleCycle() {
         .order("month", { ascending: false })
         .limit(1)
         .maybeSingle();
-      
+
       if (fallbackError || !fallbackCycle) {
         // If no previous cycle in this quarter, treat as first month
-        console.log("No previous cycles found in quarter. Treating as first month of cycle.");
-        
+        console.log(
+          "No previous cycles found in quarter. Treating as first month of cycle."
+        );
+
         // Fetch all active users
         const { data: activeUsers, error: usersError } = await supabase
           .from("users")
           .select("id")
           .eq("status", "active");
-        
+
         if (usersError) {
-          throw new Error(`Failed to fetch active users: ${usersError.message}`);
+          throw new Error(
+            `Failed to fetch active users: ${usersError.message}`
+          );
         }
-        
-        eligible_users = activeUsers?.map(user => user.id) || [];
+
+        eligible_users = activeUsers?.map((user) => user.id) || [];
         drawn_users = [];
       } else {
         // Use fallback cycle
         drawn_users = fallbackCycle.drawn_users || [];
-        
+
         // Filter out drawn users from eligible users
         eligible_users = (fallbackCycle.eligible_users || []).filter(
           (userId: string) => !drawn_users.includes(userId)
@@ -166,7 +180,7 @@ export async function getCurrentRaffleCycle() {
     } else {
       // Normal case: Previous cycle exists
       drawn_users = previousCycle.drawn_users || [];
-      
+
       // For the last month of cycle, all remaining eligible users become winners
       if (isLastMonthOfCycle) {
         eligible_users = []; // No eligible users for drawing in last month
@@ -195,25 +209,39 @@ export async function getCurrentRaffleCycle() {
 
   if (createError) {
     // Handle case where another process might have created the record (race condition)
-    if (createError.code === '23505') { // Unique constraint violation
+    if (createError.code === "23505") {
+      // Unique constraint violation
       const { data: refetchedCycle, error: refetchError } = await supabase
         .from("raffle_cycles")
         .select("*")
         .eq("year", currentYear)
         .eq("month", currentMonth)
         .single();
-        
+
       if (refetchError) {
-        throw new Error(`Failed to refetch raffle cycle: ${refetchError.message}`);
+        throw new Error(
+          `Failed to refetch raffle cycle: ${refetchError.message}`
+        );
       }
-      
+
       return refetchedCycle;
     }
-    
+
     throw new Error(`Failed to create raffle cycle: ${createError.message}`);
   }
 
   return newCycle;
+}
+
+async function getAllActiveUsers() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("email, name")
+    .eq("status", "active");
+
+  if (error) throw error;
+  return data;
 }
 
 /**
@@ -299,6 +327,23 @@ export async function drawRaffleWinners() {
   if (winnersError)
     throw new Error(`Failed to insert raffle winners: ${winnersError.message}`);
 
+  // Send email notification to all active users
+  const activeUsers = await getAllActiveUsers();
+  const monthName = new Date(
+    currentCycle.year,
+    currentCycle.month - 1
+  ).toLocaleString("default", { month: "long" });
+
+  await sendRaffleWinnersEmail(
+    activeUsers,
+    monthName,
+    currentCycle.year,
+    newWinners.map((winner, index) => ({
+      name: winner.name,
+      position: index + 1,
+    }))
+  );
+
   return {
     cycle: {
       ...currentCycle,
@@ -378,7 +423,7 @@ export async function getCurrentWinners() {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
-  
+
   return getRaffleWinners(currentYear, currentMonth);
 }
 

@@ -3,6 +3,7 @@
 import { createClient } from "../server";
 import { TablesInsert, TablesUpdate, Database } from "../types";
 import { checkUserRole } from "./profile";
+import { sendLoanStatusEmail } from "../../email-service";
 
 type LoanRequestInsert = TablesInsert<"loan_requests">;
 type LoanRequestUpdate = TablesUpdate<"loan_requests">;
@@ -25,7 +26,10 @@ export async function getAllLoansWithUsers() {
   const supabase = await createClient();
 
   // Only fetch loans with status 'accepted' and join user info
-  const { data, error } = await supabase.from("loan_requests").select(`
+  const { data, error } = await supabase
+    .from("loan_requests")
+    .select(
+      `
     *,
     users:user_id (
       id,
@@ -34,7 +38,9 @@ export async function getAllLoansWithUsers() {
       email,
       phone
     )
-  `).eq("status", "accepted");
+  `
+    )
+    .eq("status", "accepted");
 
   if (error) throw error;
 
@@ -84,19 +90,38 @@ export async function ReviewLoanRequest({
   loan_id,
   approved,
   reviewer_id,
+  reason,
 }: {
   loan_id: string;
   approved: boolean;
   reviewer_id: string;
+  reason?: string;
 }) {
   const supabase = await createClient();
 
-  // Fetch reviewer profile to check role
   await checkUserRole(reviewer_id, ["treasurer", "super-admin"]);
 
   const status: LoanStatus = approved ? "accepted" : "rejected";
   const issue_date = approved ? new Date().toISOString() : null;
-  const { data, error } = await supabase
+
+  const { data: loanRequest, error: fetchError } = await supabase
+    .from("loan_requests")
+    .select(
+      `
+      *,
+      users:user_id (
+        email,
+        name
+      )
+    `
+    )
+    .eq("id", loan_id)
+    .single();
+
+  if (fetchError) throw fetchError;
+  if (!loanRequest) throw new Error("Loan request not found");
+
+  const { error: updateError } = await supabase
     .from("loan_requests")
     .update({
       status,
@@ -104,19 +129,31 @@ export async function ReviewLoanRequest({
       approved_by: reviewer_id,
     })
     .eq("id", loan_id);
-  if (error) throw error;
-  return data;
+
+  if (updateError) throw updateError;
+
+  await sendLoanStatusEmail(
+    {
+      email: loanRequest.users.email,
+      name: loanRequest.users.name,
+    },
+    approved ? "approved" : "rejected",
+    loanRequest.amount,
+    approved
+      ? ""
+      : reason || "Your loan application did not meet the required criteria."
+  );
+
+  return loanRequest;
 }
 
 export async function getSelfLoans() {
   const supabase = await createClient();
-  // Get current user
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
   if (!user) throw new Error("User not found");
-  // Fetch loans for this user
   const { data, error } = await supabase
     .from("loan_requests")
     .select(
