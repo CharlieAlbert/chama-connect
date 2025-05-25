@@ -41,7 +41,6 @@ export async function getDashboardMetrics(): Promise<
 > {
   const supabase = await createClient();
 
-  // Sum all 'amount' values from the accounts table
   const { data: contributionsData, error: contributionsError } = await supabase
     .from("accounts")
     .select("amount, contribution_month");
@@ -53,7 +52,6 @@ export async function getDashboardMetrics(): Promise<
   if (!contributionsError && contributionsData) {
     totalContributions = contributionsData.reduce((sum: number, row: any) => sum + (row.amount || 0), 0);
 
-    // Calculate previous month
     const now = new Date();
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthStr = prevMonth.toISOString().slice(0, 7); // YYYY-MM

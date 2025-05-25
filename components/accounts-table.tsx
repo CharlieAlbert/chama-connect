@@ -79,10 +79,8 @@ export function AccountsTable({ accounts }: AccountsTableProps) {
     );
   }
 
-  // Calculate total amount
   const totalAmount = accounts.reduce((sum, account) => sum + account.amount, 0);
 
-  // Sort accounts
   const sortedAccounts = [...accounts].sort((a, b) => {
     if (sortField === "month") {
       return sortDirection === "asc"
@@ -100,7 +98,6 @@ export function AccountsTable({ accounts }: AccountsTableProps) {
     return 0;
   });
 
-  // Toggle sort direction
   const toggleSort = (field: "month" | "amount" | "status") => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
