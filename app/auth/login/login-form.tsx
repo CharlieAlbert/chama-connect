@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -88,7 +88,7 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm() {
+function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formValues, setFormValues] = useState({
@@ -253,5 +253,13 @@ export function LoginForm() {
         </div>
       </CardFooter>
     </Card>
+  );
+}
+
+export function LoginForm() {
+  return (
+    <Suspense>
+      <LoginFormContent />
+    </Suspense>
   );
 }
