@@ -32,7 +32,7 @@ export function DashboardSidebar() {
   };
 
   return (
-    <aside className="w-64 border-r border-border hidden md:block h-screen sticky top-0 overflow-auto">
+    <aside className="w-64 border-r border-border hidden md:block h-screen sticky top-0 overflow-auto bg-sidebar text-sidebar-foreground">
       <div className="h-full flex flex-col">
         <div className="p-4 h-16 border-b border-border flex items-center">
           <Link href="/dashboard" className="flex items-center">
@@ -43,7 +43,7 @@ export function DashboardSidebar() {
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          <p className="text-xs font-medium text-muted-foreground mb-2 uppercase">
+          <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
             Main
           </p>
 
@@ -75,7 +75,7 @@ export function DashboardSidebar() {
             isActive={isActive("/dashboard/governance")}
           />
 
-          <p className="text-xs font-medium text-muted-foreground mt-6 mb-2 uppercase">
+          <p className="text-xs font-medium text-muted-foreground mt-6 mb-3 uppercase tracking-wider">
             Services
           </p>
 
@@ -107,7 +107,7 @@ export function DashboardSidebar() {
             isActive={isActive("/dashboard/ruffle")}
           />
 
-          <p className="text-xs font-medium text-muted-foreground mt-6 mb-2 uppercase">
+          <p className="text-xs font-medium text-muted-foreground mt-6 mb-3 uppercase tracking-wider">
             Account
           </p>
 
@@ -175,11 +175,15 @@ function NavItem({ href, icon, label, isActive, onClick }: NavItemProps) {
       <button
         type="button"
         onClick={onClick}
-        className={`flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
-          isActive ? "bg-emerald text-primary-foreground" : "hover:bg-muted"
+        className={`flex items-center px-3 py-2.5 text-sm rounded-md transition-colors w-full ${
+          isActive
+            ? "bg-emerald text-white font-medium shadow-sm"
+            : "hover:bg-accent/20 text-sidebar-foreground"
         }`}
       >
-        <span className="mr-2">{icon}</span>
+        <span className={`mr-3 ${isActive ? "text-white" : "text-emerald"}`}>
+          {icon}
+        </span>
         <span>{label}</span>
       </button>
     );
@@ -187,11 +191,15 @@ function NavItem({ href, icon, label, isActive, onClick }: NavItemProps) {
   return (
     <Link
       href={href}
-      className={`flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
-        isActive ? "bg-emerald text-primary-foreground" : "hover:bg-muted"
+      className={`flex items-center px-3 py-2.5 text-sm rounded-md transition-colors ${
+        isActive
+          ? "bg-emerald text-white font-medium shadow-sm"
+          : "hover:bg-accent/20 text-sidebar-foreground"
       }`}
     >
-      <span className="mr-2">{icon}</span>
+      <span className={`mr-3 ${isActive ? "text-white" : "text-emerald"}`}>
+        {icon}
+      </span>
       <span>{label}</span>
     </Link>
   );
