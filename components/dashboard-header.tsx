@@ -19,12 +19,12 @@ export function DashboardHeader() {
 
   return (
     <>
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-card shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-md hover:bg-muted"
+              className="p-2 rounded-md hover:bg-muted/50 text-foreground"
               aria-label="Open menu"
             >
               <Menu size={20} />
@@ -39,7 +39,7 @@ export function DashboardHeader() {
           <div className="flex-1 flex justify-end items-center space-x-4">
             <div className="relative">
               <button
-                className="p-2 rounded-md hover:bg-muted relative"
+                className="p-2 rounded-md hover:bg-muted/50 text-foreground relative"
                 aria-label="Notifications"
               >
                 <Bell size={18} />
@@ -47,12 +47,12 @@ export function DashboardHeader() {
               </button>
             </div>
 
-            <Link 
-              href="/dashboard/profile" 
+            <Link
+              href="/dashboard/profile"
               className="hidden md:flex items-center hover:bg-muted/50 p-2 rounded-md transition-colors"
             >
               {user?.avatar_url ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden">
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-border/50">
                   <Image
                     src={user?.avatar_url}
                     alt={user?.name || ""}
@@ -62,8 +62,8 @@ export function DashboardHeader() {
                   />
                 </div>
               ) : (
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-xs font-medium">
+                <div className="w-8 h-8 rounded-full bg-emerald/10 flex items-center justify-center border border-emerald/20">
+                  <span className="text-xs font-medium text-emerald">
                     {getInitials(user?.name || "")}
                   </span>
                 </div>
