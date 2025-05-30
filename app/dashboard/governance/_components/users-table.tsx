@@ -71,6 +71,12 @@ import {
   UserX,
   UserCog,
 } from "lucide-react";
+import {
+  getRoleBadge,
+  getRoleIcon,
+  getStatusBadge,
+  getAvatarColor,
+} from "@/utils/badges";
 
 type User = Database["public"]["Tables"]["users"]["Row"];
 
@@ -238,105 +244,6 @@ const UsersTable = ({ usersDisplay }: UserProps) => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
-          >
-            <CheckCircle2 className="h-3 w-3" /> Active
-          </Badge>
-        );
-      case "inactive":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-gray-50 text-gray-500 border-gray-200 flex items-center gap-1"
-          >
-            <UserMinus className="h-3 w-3" /> Inactive
-          </Badge>
-        );
-      case "suspended":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1"
-          >
-            <ShieldX className="h-3 w-3" /> Suspended
-          </Badge>
-        );
-      default:
-        return (
-          <Badge
-            variant="outline"
-            className="bg-gray-50 text-gray-700 border-gray-200"
-          >
-            {status}
-          </Badge>
-        );
-    }
-  };
-
-  const getRoleBadge = (role: string | null) => {
-    if (!role) return null;
-
-    switch (role.toLowerCase()) {
-      case "admin":
-      case "super-admin":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
-          >
-            <ShieldCheck className="h-3 w-3" /> {role}
-          </Badge>
-        );
-      case "treasurer":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1"
-          >
-            <Shield className="h-3 w-3" /> {role}
-          </Badge>
-        );
-      case "secretary":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center gap-1"
-          >
-            <Shield className="h-3 w-3" /> {role}
-          </Badge>
-        );
-      default:
-        return (
-          <Badge
-            variant="outline"
-            className="bg-gray-50 text-gray-700 border-gray-200 capitalize"
-          >
-            {role}
-          </Badge>
-        );
-    }
-  };
-
-  // Get role icon based on role name
-  const getRoleIcon = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "super-admin":
-        return <ShieldCheck className="h-4 w-4 mr-2 text-purple-600" />;
-      case "treasurer":
-        return <Shield className="h-4 w-4 mr-2 text-blue-600" />;
-      case "secretary":
-        return <Shield className="h-4 w-4 mr-2 text-indigo-600" />;
-      default:
-        return <UserCheck className="h-4 w-4 mr-2 text-gray-600" />;
-    }
-  };
-
   return (
     <div className="space-y-6 px-6">
       {/* Header and Filters */}
@@ -431,8 +338,8 @@ const UsersTable = ({ usersDisplay }: UserProps) => {
                           {searchTerm
                             ? `No results for "${searchTerm}"`
                             : statusFilter !== "all" || roleFilter !== "all"
-                            ? "Try changing your filters"
-                            : "No users available"}
+                              ? "Try changing your filters"
+                              : "No users available"}
                         </p>
                       </div>
                     </TableCell>
@@ -447,7 +354,9 @@ const UsersTable = ({ usersDisplay }: UserProps) => {
                               src={user.avatar_url || undefined}
                               alt={user.name || ""}
                             />
-                            <AvatarFallback className="bg-primary/10 text-primary-foreground">
+                            <AvatarFallback
+                              className={getAvatarColor(user.name || "?")}
+                            >
                               {user.name
                                 ? user.name
                                     .split(" ")
@@ -459,7 +368,9 @@ const UsersTable = ({ usersDisplay }: UserProps) => {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{user.name}</div>
+                            <div className="font-medium capitalize">
+                              {user.name}
+                            </div>
                             <div className="text-xs text-muted-foreground md:hidden">
                               {user.email}
                             </div>
@@ -472,7 +383,9 @@ const UsersTable = ({ usersDisplay }: UserProps) => {
                       <TableCell className="hidden md:table-cell">
                         {user.phone || "-"}
                       </TableCell>
-                      <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell className="capitalize">
+                        {getRoleBadge(user.role)}
+                      </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -610,15 +523,15 @@ const UsersTable = ({ usersDisplay }: UserProps) => {
               {confirmDialog.action === "activate"
                 ? "Activate User"
                 : confirmDialog.action === "deactivate"
-                ? "Deactivate User"
-                : "Suspend User"}
+                  ? "Deactivate User"
+                  : "Suspend User"}
             </DialogTitle>
             <DialogDescription>
               {confirmDialog.action === "activate"
                 ? "This will allow the user to access the system again."
                 : confirmDialog.action === "deactivate"
-                ? "This will prevent the user from accessing the system until reactivated."
-                : "This action is irreversible. The user will be permanently suspended and cannot be reactivated."}
+                  ? "This will prevent the user from accessing the system until reactivated."
+                  : "This action is irreversible. The user will be permanently suspended and cannot be reactivated."}
             </DialogDescription>
           </DialogHeader>
 
@@ -634,8 +547,8 @@ const UsersTable = ({ usersDisplay }: UserProps) => {
                 {confirmDialog.action === "activate"
                   ? "activate"
                   : confirmDialog.action === "deactivate"
-                  ? "deactivate"
-                  : "suspend"}{" "}
+                    ? "deactivate"
+                    : "suspend"}{" "}
                 <span className="font-bold">{confirmDialog.userName}</span>?
               </p>
               {confirmDialog.action === "suspend" && (

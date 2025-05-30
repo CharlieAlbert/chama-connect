@@ -4,6 +4,7 @@ import { createClient } from "../server";
 import { TablesInsert, TablesUpdate, Database } from "../types";
 import { checkUserRole } from "./profile";
 import { sendLoanStatusEmail } from "../../email-service";
+import { formatCurrency } from "@/utils/currency";
 
 type LoanRequestInsert = TablesInsert<"loan_requests">;
 type LoanRequestUpdate = TablesUpdate<"loan_requests">;
@@ -51,6 +52,43 @@ export async function getAllLoansWithUsers() {
   }));
 }
 
+const LOAN_TYPES = {
+  regular: {
+    name: "Regular Loan",
+    maxAmount: 9000,
+    interestRate: "10%",
+    term: "6 months",
+    description: "Standard loan with fixed monthly payments",
+  },
+  special: {
+    name: "Special Loan",
+    maxAmount: 25000,
+    interestRate: "10%",
+    term: "12 months",
+    description: "Higher loan amount with longer repayment period",
+  },
+};
+
+export async function validateLoanAmount(
+  amount: number,
+  loanType: LoanType
+): Promise<{ isValid: boolean; error?: string }> {
+  const loanTypeDetails = LOAN_TYPES[loanType];
+  if (amount > loanTypeDetails.maxAmount) {
+    return {
+      isValid: false,
+      error: `Amount cannot exceed ${formatCurrency(loanTypeDetails.maxAmount)} for a ${loanTypeDetails.name}.`,
+    };
+  }
+  if (amount < 100) {
+    return {
+      isValid: false,
+      error: `Amount must be at least ${formatCurrency(100)}.`,
+    };
+  }
+  return { isValid: true };
+}
+
 export async function RequestLoan(
   request: Omit<
     LoanRequestInsert,
@@ -73,6 +111,14 @@ export async function RequestLoan(
   const interest_rate = 0.1; // 10%
   const repayment_terms = "6 months";
   const status: LoanStatus = "in_review";
+
+  const validation = await validateLoanAmount(
+    request.amount,
+    request.loan_type
+  );
+  if (!validation.isValid) {
+    throw new Error(validation.error);
+  }
 
   const { data, error } = await supabase.from("loan_requests").insert({
     ...request,

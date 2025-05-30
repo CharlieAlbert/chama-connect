@@ -6,7 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
-import { RequestLoan } from "@/lib/supabase/server-extended/loans";
+import {
+  RequestLoan,
+  validateLoanAmount,
+} from "@/lib/supabase/server-extended/loans";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -50,6 +53,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/utils/currency";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Define loan types and their details
 const LOAN_TYPES = {
@@ -69,7 +80,6 @@ const LOAN_TYPES = {
   },
 };
 
-// Form validation schema
 const formSchema = z.object({
   amount: z
     .number()
@@ -89,8 +99,8 @@ export default function LoanApplyPage() {
   const [selectedTab, setSelectedTab] = useState<"regular" | "special">(
     "regular"
   );
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
 
-  // Initialize form with react-hook-form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -105,6 +115,16 @@ export default function LoanApplyPage() {
     setSuccess(false);
 
     try {
+      const validation = await validateLoanAmount(
+        values.amount,
+        values.loanType
+      );
+      if (!validation.isValid) {
+        setError(validation.error || "Invalid loan amount");
+        setErrorDialogOpen(true);
+        return;
+      }
+
       await RequestLoan({
         amount: values.amount,
         loan_type: values.loanType,
@@ -116,12 +136,12 @@ export default function LoanApplyPage() {
       });
     } catch (err: any) {
       setError(err.message || "Failed to apply for loan");
+      setErrorDialogOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Update form when tab changes
   const handleTabChange = (value: string) => {
     setSelectedTab(value as "regular" | "special");
     form.setValue("loanType", value as "regular" | "special");
@@ -329,8 +349,7 @@ export default function LoanApplyPage() {
                           </div>
                         </FormControl>
                         <FormDescription>
-                          Enter an amount between{" "}
-                          {formatCurrency(100)} and{" "}
+                          Enter an amount between {formatCurrency(100)} and{" "}
                           {formatCurrency(
                             selectedTab === "regular"
                               ? LOAN_TYPES.regular.maxAmount
@@ -413,6 +432,63 @@ export default function LoanApplyPage() {
           </Card>
         </>
       )}
+
+      {/* Error Dialog */}
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">
+              Validation Error
+            </DialogTitle>
+            <DialogDescription>
+              We found an issue that needs your attention before proceeding.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-start gap-4 py-4">
+            <div className="rounded-full bg-red-100 p-2 flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <p className="font-medium">Error Details</p>
+              <p className="text-sm text-muted-foreground mt-2">{error}</p>
+
+              <div className="mt-4 bg-muted/50 p-3 rounded-md text-sm">
+                <p className="font-medium mb-1">Quick Fix:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Ensure the loan amount is within the allowed range</li>
+                  <li>Check that you've selected the correct loan type</li>
+                  <li>Verify all required fields are completed</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between items-center pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setErrorDialogOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => setErrorDialogOpen(false)}
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Got it"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
