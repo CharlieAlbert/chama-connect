@@ -2,7 +2,7 @@
 
 import { createClient } from "../server";
 import { TablesInsert, TablesUpdate, Database } from "../types";
-import { checkUserRole } from "./profile";
+import { checkUserRole } from "./auth-helpers";
 import { sendLoanStatusEmail } from "../../email-service";
 import { formatCurrency } from "@/utils/currency";
 
