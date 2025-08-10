@@ -3,7 +3,7 @@
 import { createClient } from "../server";
 import { Database } from "../types";
 import { getAuthenticatedUser } from "./auth-helpers";
-import { checkUserRole } from "./profile";
+import { checkUserRole } from "./auth-helpers";
 
 export type Account = Database["public"]["Tables"]["accounts"]["Row"];
 

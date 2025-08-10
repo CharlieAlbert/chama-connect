@@ -2,7 +2,7 @@
 
 import { createClient } from "../server";
 import { Database } from "../types";
-import { checkUserRole } from "./profile";
+import { checkUserRole } from "./auth-helpers";
 import { parseMpesaMessage } from "../scripts";
 
 type Users = Database["public"]["Tables"]["users"]["Row"][];

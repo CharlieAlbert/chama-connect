@@ -6,7 +6,6 @@ import { FinancesClient } from "./finances-client";
 
 // Server Component for data fetching
 export default async function FinancesPage() {
-  // Fetch data on the server for better performance and SEO
   const accountsPromise = getAccountDetails();
   const usersPromise = getUsers();
 
