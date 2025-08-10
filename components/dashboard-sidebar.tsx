@@ -18,13 +18,16 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { getInitials } from "@/utils/initials";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     logout();
+    router.push("/");
   };
 
   const isActive = (path: string) => {

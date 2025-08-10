@@ -59,7 +59,6 @@ export async function uploadProfileImage(
 export async function getSelfProfile() {
   const supabase = await createClient();
 
-  // First get the current user's ID
   const {
     data: { user },
     error: AuthError,
@@ -125,5 +124,3 @@ export async function updateUserProfile(profileData: {
 
   return { data, error: null };
 }
-
-

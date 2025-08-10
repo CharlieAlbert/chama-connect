@@ -56,17 +56,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     "/auth/reset-password",
   ];
 
-  const privateRoutes = [
-    "/dashboard",
-    "/profile",
-  ];
+  const privateRoutes = ["/dashboard", "/profile"];
 
   function isPublicRoute(path: string) {
-    return publicRoutes.some((route) => path === route || path.startsWith(route + "/"));
+    return publicRoutes.some(
+      (route) => path === route || path.startsWith(route + "/")
+    );
   }
 
   function isPrivateRoute(path: string) {
-    return privateRoutes.some((route) => path === route || path.startsWith(route + "/"));
+    return privateRoutes.some(
+      (route) => path === route || path.startsWith(route + "/")
+    );
   }
 
   const fetchUser = useCallback(async () => {
@@ -76,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         return;
       }
-      
+
       const { data, error } = await getSelfProfile();
       if (error) {
         setError(error);
